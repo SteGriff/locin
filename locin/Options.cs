@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using CommandLine;
+using CommandLine.Text;
 
 namespace locin
 {
@@ -21,5 +22,10 @@ namespace locin
         [Option('o', "outfile", DefaultValue = null, HelpText = "Output results to this file path instead of printing to console")]
         public string outfile { get; set; }
 
+        [HelpOption]
+        public string GetUsage()
+        {
+            return HelpText.AutoBuild(this, (HelpText current) => HelpText.DefaultParsingErrorsHandler(this, current));
+        }
     }
 }
