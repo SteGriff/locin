@@ -64,14 +64,19 @@ namespace locin
                 totalLines += lines;
             }
 
+            int filesCount = filesToRead.Count;
+            double averageLinesPerFile = (double)totalLines / (double)filesCount;
+
             //Output the results
             Output("locin - {0}", path);
+            Output("Number of files: {0}", filesCount); 
             Output("Total lines: {0}", totalLines);
+            Output("Avg. lines per file: {0:F2}", averageLinesPerFile); 
             Output("Breakdown:");
             Output("==========");
             foreach (var file in linesByFile.OrderByDescending(f => f.Value))
             {
-                Output("{0}\t{1}", file.Value, file.Key);
+                Output("{0,-9}{1}", file.Value, file.Key);
             }
 
             Output("==========");
