@@ -10,22 +10,19 @@ namespace locin
 {
     class Options
     {
-        [Option('f', "filters", DefaultValue = "*.*", HelpText = "File name/type filters E.g. *.cs;*.xml")]
-        public string filters { get; set; }
+        [Option('f', "filters", Default = "*.*", HelpText = "File name/type filters E.g. *.cs;*.xml")]
+        public string Filters { get; set; }
 
-        [Option('r', "recursive", DefaultValue = true, HelpText = "Get files recursively rather than using the top directory only.")]
-        public bool recursive { get; set; }
+        [Option('r', "recursive", Default = true, HelpText = "Get files recursively rather than using the top directory only.")]
+        public bool Recursive { get; set; }
 
-        [Option('e', "include-empty", DefaultValue = false, HelpText = "Include empty lines in count")]
-        public bool includeEmpty { get; set; }
+        [Option('e', "include-empty", Default = false, HelpText = "Include empty lines in count")]
+        public bool IncludeEmptyLines { get; set; }
 
-        [Option('o', "outfile", DefaultValue = null, HelpText = "Output results to this file path instead of printing to console")]
-        public string outfile { get; set; }
+        [Option('o', "outfile", Default = null, HelpText = "Output results to this file path instead of printing to console")]
+        public string OutputFile { get; set; }
 
-        [HelpOption]
-        public string GetUsage()
-        {
-            return HelpText.AutoBuild(this, (HelpText current) => HelpText.DefaultParsingErrorsHandler(this, current));
-        }
+        [Option('p', "path", HelpText = "The path to scan. Defaults to current working directory.")]
+        public string Path { get; set; }
     }
 }

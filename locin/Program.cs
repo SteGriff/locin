@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CommandLine;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,29 +8,50 @@ namespace locin
 {
     class Program
     {
-        static Options options = new Options();
-        static List<string> outputFileLines;
+        private static IOutputStrategy outputStrategy;
 
         static void Main(string[] args)
         {
-            outputFileLines = new List<string>();
-
-            if (!CommandLine.Parser.Default.ParseArguments(args, options))
+            try
             {
-                Environment.Exit(0);
+                Parser.Default.ParseArguments<Options>(args).WithParsed(o => Run(o));
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Oops - locin died! Here's the exception:");
+                Console.Error.WriteLine(ex.ToString());
+            }
+            
+        }
+
+        static void Run(Options options)
+        {
+            if (options.OutputFile == null)
+            {
+                outputStrategy = new ConsoleOutputStrategy();
+            }
+            else
+            {
+                outputStrategy = new FileOutputStrategy(options.OutputFile);
             }
 
-            var filters = new List<string> { options.filters };
-            if (options.filters.Contains(";"))
+            var filters = new List<string> { options.Filters };
+            if (options.Filters.Contains(";"))
             {
-                filters = options.filters.Split(new[] { ';' }).ToList();
+                filters = options.Filters.Split(new[] { ';' }).ToList();
             }
 
             //Prepare file filters and options,
             // figure out which files to read
             var filesToRead = new List<string>();
-            var searchOption = options.recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+            var searchOption = options.Recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+
             string path = Environment.CurrentDirectory;
+            if (options.Path != null || Directory.Exists(options.Path))
+            {
+                path = options.Path;
+            }
+
             foreach (var filter in filters)
             {
                 try
@@ -39,7 +61,7 @@ namespace locin
                 }
                 catch (Exception)
                 {
-                    Output("Invalid filter, {0}", ConsoleColor.Red, filter);
+                    outputStrategy.Output("Invalid filter, {0}", ConsoleColor.Red, filter);
                 }
 
             }
@@ -51,7 +73,7 @@ namespace locin
             foreach (var file in filesToRead)
             {
                 int lines = 0;
-                if (options.includeEmpty)
+                if (options.IncludeEmptyLines)
                 {
                     lines = File.ReadLines(file).ToList().Count;
                 }
@@ -65,89 +87,24 @@ namespace locin
             }
 
             int filesCount = filesToRead.Count;
-            double averageLinesPerFile = (double)totalLines / (double)filesCount;
+            decimal averageLinesPerFile = (decimal)totalLines / filesCount;
 
             //Output the results
-            Output("locin - {0}", path);
-            Output("Number of files: {0}", filesCount); 
-            Output("Total lines: {0}", totalLines);
-            Output("Avg. lines per file: {0:F2}", averageLinesPerFile); 
-            Output("Breakdown:");
-            Output("==========");
+            outputStrategy.Output("locin - {0}",  path);
+            outputStrategy.Output("Number of files: {0}",  filesCount);
+            outputStrategy.Output("Total lines: {0}",  totalLines);
+            outputStrategy.Output("Avg. lines per file: {0:F2}",  averageLinesPerFile);
+            outputStrategy.Output("Breakdown:");
+            outputStrategy.Output("==========");
             foreach (var file in linesByFile.OrderByDescending(f => f.Value))
             {
-                Output("{0,-9}{1}", file.Value, file.Key);
+                outputStrategy.Output("{0,-9}{1}", file.Value, file.Key);
             }
 
-            Output("==========");
-            Output("Total lines: {0}", totalLines);
+            outputStrategy.Output("==========");
+            outputStrategy.Output("Total lines: {0}", totalLines);
 
-            if (options.outfile != null)
-            {
-                try
-                {
-                    File.WriteAllLines(options.outfile, outputFileLines);
-                }
-                catch (Exception)
-                {
-                    //Strict fallback to console for error message
-                    Console.WriteLine("Couldn't write to output file.");
-                }
-
-            }
-
-        }
-
-        private static void Output(string format, ConsoleColor colour, params object[] args)
-        {
-            if (options.outfile == null)
-            {
-                Console.ForegroundColor = colour;
-                Console.WriteLine(format, (object[])args);
-                Console.ResetColor();
-            }
-            else
-            {
-                outputFileLines.Add(string.Format(format, (object[])args));
-            }
-        }
-
-        private static void Output(string format, params object[] args)
-        {
-            if (options.outfile == null)
-            {
-                Console.WriteLine(format, (object[])args);
-            }
-            else
-            {
-                outputFileLines.Add(string.Format(format, (object[])args));
-            }
-        }
-
-        private static void Output(string text)
-        {
-            if (options.outfile == null)
-            {
-                Console.WriteLine(text);
-            }
-            else
-            {
-                outputFileLines.Add(text);
-            }
-        }
-
-        private static void Output(string text, ConsoleColor colour)
-        {
-            if (options.outfile == null)
-            {
-                Console.ForegroundColor = colour;
-                Console.WriteLine(text);
-                Console.ResetColor();
-            }
-            else
-            {
-                outputFileLines.Add(text);
-            }
+            outputStrategy.Finalise();
         }
 
     }
